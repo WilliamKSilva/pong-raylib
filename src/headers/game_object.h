@@ -8,6 +8,7 @@ class GameObject {
     public:
         Vector2 pos;
         Color color;
+        const char* name;
 };
 
 #endif

@@ -1,9 +1,10 @@
 #include "player.h"
 #include "raylib.h"
 
-Player::Player(Vector2 _pos, Color _color) {
+Player::Player(Vector2 _pos, Color _color, const char* _name) {
     pos = _pos;
     color = _color;
+    name = _name;
 }
 
 void Player::render() {
