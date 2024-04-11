@@ -21,6 +21,13 @@ int main() {
             height: (float)player.height
         }, player.name);
 
+        ball.check_collision({
+            x: enemy.pos.x,
+            y: enemy.pos.y,
+            width: (float)enemy.width,
+            height: (float)enemy.height
+        }, enemy.name);
+
         ball.check_out_of_bounds();
 
         Scored scored = ball.check_scored();
