@@ -2,6 +2,7 @@
 #include "raylib.h"
 #include "ball.h"
 #include "game.h"
+#include "string.h"
 
 Ball::Ball(Vector2 _pos, float _radius, Color _color)
 {
@@ -61,7 +62,12 @@ void Ball::check_collision(Rectangle rect, const char* object_name)
             bounceVertical = BOTTOM;
         }
 
-        bounceHorizontal = RIGHT;
+
+        if (strcmp(object_name, "Player") == 0) {
+            bounceHorizontal = RIGHT;
+        } else {
+            bounceHorizontal = LEFT;
+        }
     }
 }
 

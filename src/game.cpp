@@ -5,10 +5,12 @@
 #include "player.h"
 #include "ball.h"
 #include "game.h"
+#include "enemy.h"
 
 int main() {
     Window::init();
     Player player = Player({x: 100, y: 30}, BLACK, "Player");
+    Enemy enemy = Enemy({x: Window::width - 100, y: 30}, BLACK, "Enemy");
     Ball ball = Ball({x: Window::width / 2, y: Window::height / 2}, 20.0, BLACK);
 
     while (!WindowShouldClose()) {
@@ -30,11 +32,13 @@ int main() {
 
         player.move();
         ball.bounce();
+        enemy.move(ball.pos.y);
 
         BeginDrawing();
             ClearBackground(WHITE);
             player.render();
             ball.render();
+            enemy.render();
         EndDrawing();
     }
 
