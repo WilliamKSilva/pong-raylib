@@ -3,6 +3,7 @@
 
 // Application level imports
 #include "player.h"
+#include "ball.h"
 
 class Window {
     public:
@@ -18,14 +19,16 @@ class Window {
 
 int main() {
     Window::init();
-    Player* player = new Player({x: 100, y: 30}, BLACK);
+    Player player = Player({x: 100, y: 30}, BLACK);
+    Ball ball = Ball({x: Window::width / 2, y: Window::height / 2}, 20.0, BLACK);
 
     while (!WindowShouldClose()) {
-        player->move();
+        player.move();
 
         BeginDrawing();
             ClearBackground(WHITE);
-            player->render();
+            player.render();
+            ball.render();
         EndDrawing();
     }
 
