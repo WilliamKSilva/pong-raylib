@@ -21,6 +21,8 @@ int main() {
     Player* player = new Player({x: 100, y: 30}, BLACK);
 
     while (!WindowShouldClose()) {
+        player->move();
+
         BeginDrawing();
             ClearBackground(WHITE);
             player->render();
