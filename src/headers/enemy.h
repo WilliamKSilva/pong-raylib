@@ -14,6 +14,7 @@ class Enemy : public GameObject {
         Enemy(Vector2 _pos, Color _color, const char* _name);
         void render();
         void move(float player_pos_y);
+        void render_score();
 };
 
 #endif

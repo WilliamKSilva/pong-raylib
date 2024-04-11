@@ -14,6 +14,7 @@ class Player : public GameObject {
         Player(Vector2 _pos, Color _color, const char* _name);
         void render();
         void move();
+        void render_score();
 };
 
 #endif

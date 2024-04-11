@@ -55,6 +55,9 @@ int main() {
             player.render();
             ball.render();
             enemy.render();
+
+            player.render_score();
+            enemy.render_score();
         EndDrawing();
     }
 

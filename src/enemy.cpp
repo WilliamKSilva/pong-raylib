@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "raylib.h"
 #include "enemy.h"
 #include "game.h"
@@ -25,4 +26,10 @@ void Enemy::move(float ball_pos_y)
     {
         pos.y -= speed;
     }
+}
+
+void Enemy::render_score() {
+    char buf[256];
+    snprintf(buf, sizeof(buf), "Score: %d", score);
+    DrawText(buf, Window::width - 200, 10, 31, BLACK);
 }
