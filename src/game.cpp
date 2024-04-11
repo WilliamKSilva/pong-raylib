@@ -24,6 +24,7 @@ int main() {
 
     while (!WindowShouldClose()) {
         player.move();
+        ball.bounce();
 
         BeginDrawing();
             ClearBackground(WHITE);
