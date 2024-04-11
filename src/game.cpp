@@ -14,6 +14,7 @@ int main() {
     Ball ball = Ball({x: Window::width / 2, y: Window::height / 2}, 20.0, BLACK);
 
     while (!WindowShouldClose()) {
+        // Check position of stuff
         ball.check_collision({
             x: player.pos.x,
             y: player.pos.y,
@@ -37,10 +38,18 @@ int main() {
             ball.reset_state();
         }
 
+        if (scored.enemyScored) {
+            enemy.score++;
+
+            ball.reset_state();
+        }
+
+        // Move stuff
         player.move();
         ball.bounce();
         enemy.move(ball.pos.y);
 
+        // Render stuff
         BeginDrawing();
             ClearBackground(WHITE);
             player.render();

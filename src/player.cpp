@@ -1,5 +1,6 @@
 #include "player.h"
 #include "raylib.h"
+#include "game.h"
 
 Player::Player(Vector2 _pos, Color _color, const char* _name) {
     pos = _pos;
@@ -12,11 +13,11 @@ void Player::render() {
 }
 
 void Player::move() {
-    if (IsKeyDown(KEY_W)) {
+    if (IsKeyDown(KEY_W) && pos.y > 0) {
         pos.y -= speed;
     }
 
-    if (IsKeyDown(KEY_S)) {
+    if (IsKeyDown(KEY_S) && pos.y < Window::height - height) {
         pos.y += speed;
     }
 }
