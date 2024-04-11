@@ -4,18 +4,7 @@
 // Application level imports
 #include "player.h"
 #include "ball.h"
-
-class Window {
-    public:
-        static const int width = 1920;
-        static const int height = 1080;
-        static const int fps = 60;
-
-        static void init() {
-            InitWindow(width, height, "Pong");
-            SetTargetFPS(fps);
-        };
-};
+#include "game.h"
 
 int main() {
     Window::init();
@@ -35,6 +24,8 @@ int main() {
         Scored scored = ball.check_scored();
         if (scored.playerScored) {
             player.score++;
+
+            ball.reset_state();
         }
 
         player.move();

@@ -37,6 +37,7 @@ class Ball : public GameObject {
         // Player and Enemy are rectangle shapes
         void check_collision(Rectangle rect, const char* object_name);
         void check_out_of_bounds();
+        void reset_state();
         Scored check_scored();
 };
 #endif

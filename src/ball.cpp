@@ -1,6 +1,7 @@
 #include <iostream>
 #include "raylib.h"
 #include "ball.h"
+#include "game.h"
 
 Ball::Ball(Vector2 _pos, float _radius, Color _color)
 {
@@ -93,4 +94,12 @@ Scored Ball::check_scored()
     }
 
     return {playerScored : false, enemyScored : false};
+}
+
+void Ball::reset_state() {
+    pos.x = Window::width / 2;
+    pos.y = Window::height / 2;
+
+    bounceHorizontal = LEFT;
+    bounceVertical = NONE;
 }
