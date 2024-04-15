@@ -11,8 +11,9 @@ import (
 )
 
 type Player struct {
-	ID       string `json:"id"`
-	Nickname string `json:"nickname"`
+	ID          string `json:"id"`
+	Nickname    string `json:"nickname"`
+	socket_conn *websocket.Conn
 }
 
 type Game struct {
@@ -32,6 +33,7 @@ type Position struct {
 }
 
 type PlayerState struct {
+	GameID   string   `json:"game_id"`
 	PlayerID string   `json:"player_id"`
 	Position Position `json:"position"`
 }
@@ -67,6 +69,24 @@ func connect_game(connectGame ConnectGameData) {
 	}
 }
 
+func update_player_state(playerState PlayerState) {
+	for i := 0; i < len(games); i++ {
+		if games[i].ID == playerState.GameID {
+			opponent := get_player_opponent(playerState.GameID, games[i])
+			opponent.socket_conn.WriteJSON(playerState)
+			break
+		}
+	}
+}
+
+func get_player_opponent(playerID string, game Game) Player {
+	if game.PlayerOne.ID == playerID {
+		return game.PlayerTwo
+	} else {
+		return game.PlayerOne
+	}
+}
+
 func handle_socket_conn(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -87,6 +107,14 @@ func handle_socket_conn(w http.ResponseWriter, r *http.Request) {
 		// Packet sent on websocket conn is related to game connection
 		if err == nil {
 			connect_game(connectGameData)
+		}
+
+		var playerState PlayerState
+		err = json.Unmarshal(message, &playerState)
+
+		// Packet sent on websocket conn is related to player state
+		if err == nil {
+			update_player_state(playerState)
 		}
 
 		log.Printf("recv: %s", message)

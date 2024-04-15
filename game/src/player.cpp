@@ -3,7 +3,6 @@
 #include "raylib.h"
 #include "game.h"
 
-
 Player::Player(Vector2 _pos, Color _color, const char* _name) {
     pos = _pos;
     color = _color;

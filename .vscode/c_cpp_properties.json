@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "/usr/local/lib/raylib/src"
+                "/usr/local/lib/raylib/src",
+                "/usr/local/lib/emsdk/upstream/emscripten/system/include/"
             ],
             "defines": [],
             "cStandard": "c17",
