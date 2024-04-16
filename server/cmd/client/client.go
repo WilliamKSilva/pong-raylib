@@ -14,9 +14,8 @@ import (
 
 // I need to learn how to import packages from the same module
 type Player struct {
-	ID          string `json:"id"`
-	Nickname    string `json:"nickname"`
-	socket_conn *websocket.Conn
+	ID       string `json:"id"`
+	Nickname string `json:"nickname"`
 }
 
 type Game struct {
@@ -31,8 +30,8 @@ type ConnectGameData struct {
 }
 
 type Position struct {
-	X string `json:"x"`
-	Y string `json:"y"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }
 
 type PlayerState struct {
@@ -41,7 +40,26 @@ type PlayerState struct {
 	Position Position `json:"position"`
 }
 
+type ConnectMessageResponse struct {
+	GameID   string `json:"game_id"`
+	Player   Player `json:"player"`
+	Opponent Player `json:"opponent"`
+}
+
+type MessageTypes string
+
+const (
+	CONNECT             MessageTypes = "CONNECT"
+	UPDATE_PLAYER_STATE MessageTypes = "UPDATE_PLAYER_STATE"
+)
+
+type SocketMessage struct {
+	Type MessageTypes `json:"type"`
+	Data any          `json:"data"`
+}
+
 var addr = flag.String("addr", "localhost:3000", "http service address")
+var gameId = flag.String("gameId", "", "first player to connect")
 
 func main() {
 	interrupt := make(chan os.Signal, 1)
@@ -55,6 +73,8 @@ func main() {
 		log.Fatal("error:", err)
 	}
 
+	// which player this websocket connection refers to
+	var connectGameData ConnectMessageResponse
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
@@ -65,36 +85,91 @@ func main() {
 				return
 			}
 			log.Printf("recv: %s", message)
+			var socketMessage SocketMessage
+			err = json.Unmarshal(message, &socketMessage)
+
+			if err != nil {
+				log.Println("unmarshal:", err)
+				return
+			}
+
+			if socketMessage.Type == CONNECT {
+				connectGameData = socketMessage.Data.(ConnectMessageResponse)
+			}
 		}
 	}()
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
-	joinedGame := false
 	for {
 		select {
 		case <-done:
 			return
-		case t := <-ticker.C:
-			if !joinedGame {
-				connectGameData := ConnectGameData{
-					GameID:   "",
-					Nickname: "player_one",
-				}
-				jsonData, err := json.Marshal(connectGameData)
+		case _ = <-ticker.C:
+			// Player not connected yet
+			if connectGameData.GameID == "" {
+				// The client is testing the first Player
+				if *gameId == "" {
+					socketMessage := SocketMessage{
+						Type: CONNECT,
+						Data: ConnectGameData{
+							GameID:   "",
+							Nickname: "player1",
+						},
+					}
 
-				if err != nil {
-					log.Fatal("error:", err)
-				}
+					socketMessageData, err := json.Marshal(socketMessage)
 
-				err = c.WriteMessage(websocket.BinaryMessage, jsonData)
+					if err != nil {
+						log.Fatal("marshal:", err)
+						return
+					}
 
-				if err != nil {
-					log.Fatal("write:", err)
-					return
+					log.Println(socketMessageData)
+
+					c.WriteMessage(websocket.BinaryMessage, socketMessageData)
+				} else {
+					socketMessage := SocketMessage{
+						Type: CONNECT,
+						Data: ConnectGameData{
+							GameID:   *gameId,
+							Nickname: "player2",
+						},
+					}
+
+					socketMessageData, err := json.Marshal(socketMessage)
+
+					if err != nil {
+						log.Fatal("marshal:", err)
+						return
+					}
+
+					c.WriteMessage(websocket.BinaryMessage, socketMessageData)
 				}
 			}
+
+			// If player is already connected the next messages will be Player State update
+			socketMessage := SocketMessage{
+				Type: UPDATE_PLAYER_STATE,
+				Data: PlayerState{
+					GameID:   connectGameData.GameID,
+					PlayerID: connectGameData.Player.ID,
+					Position: Position{
+						X: 20.0,
+						Y: 20.0,
+					},
+				},
+			}
+
+			socketMessageData, err := json.Marshal(socketMessage)
+
+			if err != nil {
+				log.Fatal("marshal:", err)
+				return
+			}
+
+			c.WriteMessage(websocket.BinaryMessage, socketMessageData)
 
 		case <-interrupt:
 			log.Println("interrupt")
