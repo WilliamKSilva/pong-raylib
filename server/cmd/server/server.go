@@ -9,62 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+    . "github.com/WilliamKSilva/pong/server/pkg"
 )
-
-type Player struct {
-	ID          string `json:"id"`
-	Nickname    string `json:"nickname"`
-	socket_conn *websocket.Conn
-}
-
-type Game struct {
-	ID        string `json:"id"`
-	PlayerOne Player `json:"player_one"`
-	PlayerTwo Player `json:"player_two"`
-}
-
-type ConnectGameData struct {
-	GameID   string `json:"game_id"`
-	Nickname string `json:"nickname"`
-}
-
-type Position struct {
-	X string `json:"x"`
-	Y string `json:"y"`
-}
-
-type PlayerState struct {
-	GameID   string   `json:"game_id"`
-	PlayerID string   `json:"player_id"`
-	Position Position `json:"position"`
-}
-
-type ConnectMessageResponse struct {
-	GameID   string `json:"game_id"`
-	Player   Player `json:"player"`
-	Opponent Player `json:"opponent"`
-}
-
-type MessageTypes string
-
-const (
-	CONNECT             MessageTypes = "CONNECT"
-	UPDATE_PLAYER_STATE MessageTypes = "UPDATE_PLAYER_STATE"
-)
-
-type SocketMessage struct {
-	Type MessageTypes `json:"type"`
-	Data any          `json:"data"`
-}
-
-type SocketMessageConnectGame struct {
-	Data ConnectGameData `json:"data"`
-}
-
-type PlayerAndOpponent struct {
-	player   *Player
-	opponent *Player
-}
 
 var addr = flag.String("addr", "localhost:3000", "http service address")
 
@@ -72,42 +18,48 @@ var upgrader = websocket.Upgrader{}
 
 var games []Game
 
-func connect_game(connectGame ConnectGameData, c *websocket.Conn) {
+func connect_game(connectGame ConnectGameRequest, c *websocket.Conn) {
 	var game Game
 	if connectGame.GameID == "" {
 		game.ID = uuid.NewString()
 		game.PlayerOne = Player{
 			ID:       uuid.NewString(),
 			Nickname: connectGame.Nickname,
+            SocketConn: c,
 		}
 		log.Println("game created:", game.ID)
 		games = append(games, game)
 
 		player_and_opponent := get_player_and_opponent(game.PlayerOne.ID, game)
 
-		var connectMessageResponse ConnectMessageResponse
-		if player_and_opponent.opponent == nil {
-			connectMessageResponse = ConnectMessageResponse{
+		var connectMessageResponse ConnectGameResponse
+		if player_and_opponent.Opponent == nil {
+			connectMessageResponse = ConnectGameResponse{
 				GameID:   game.ID,
-				Player:   *player_and_opponent.player,
+				Player:   *player_and_opponent.Player,
 				Opponent: Player{},
 			}
 		} else {
-			connectMessageResponse = ConnectMessageResponse{
+			connectMessageResponse = ConnectGameResponse{
 				GameID:   game.ID,
-				Player:   *player_and_opponent.player,
-				Opponent: *player_and_opponent.opponent,
+				Player:   *player_and_opponent.Player,
+				Opponent: *player_and_opponent.Opponent,
 			}
 		}
 
-		connectMessageResponseData, err := json.Marshal(connectMessageResponse)
+		socketMessage := SocketMessage{
+			Type: CONNECT,
+			Data: connectMessageResponse,
+		}
+
+		socketMessageData, err := json.Marshal(socketMessage)
 
 		if err != nil {
 			log.Println("marshal:", err)
 			return
 		}
 
-		err = c.WriteMessage(websocket.BinaryMessage, connectMessageResponseData)
+		err = c.WriteMessage(websocket.BinaryMessage, socketMessageData)
 
 		if err != nil {
 			log.Fatal("write to socket:", err)
@@ -121,33 +73,52 @@ func connect_game(connectGame ConnectGameData, c *websocket.Conn) {
 				games[i].PlayerTwo = Player{
 					ID:       uuid.NewString(),
 					Nickname: connectGame.Nickname,
+                    SocketConn: c,
 				}
 
 				game = games[i]
 				player_and_opponent := get_player_and_opponent(game.PlayerTwo.ID, game)
-				var connectMessageResponse ConnectMessageResponse
-				if player_and_opponent.opponent == nil {
-					connectMessageResponse = ConnectMessageResponse{
+				var connectMessageResponse ConnectGameResponse
+				if player_and_opponent.Opponent == nil {
+					connectMessageResponse = ConnectGameResponse{
 						GameID:   game.ID,
-						Player:   *player_and_opponent.player,
+						Player:   *player_and_opponent.Player,
 						Opponent: Player{},
 					}
 				}
 
-				connectMessageResponse = ConnectMessageResponse{
+				connectMessageResponse = ConnectGameResponse{
 					GameID:   game.ID,
-					Player:   *player_and_opponent.player,
-					Opponent: *player_and_opponent.opponent,
+					Player:   *player_and_opponent.Player,
+					Opponent: *player_and_opponent.Opponent,
 				}
 
-				connectMessageResponseData, err := json.Marshal(connectMessageResponse)
+				socketMessage := SocketMessage{
+					Type: CONNECT,
+					Data: connectMessageResponse,
+				}
+
+				socketMessageData, err := json.Marshal(socketMessage)
 
 				if err != nil {
 					log.Println("marshal:", err)
 					return
 				}
 
-				c.WriteMessage(websocket.BinaryMessage, connectMessageResponseData)
+                // Send ConnectMessageResponse to player
+				c.WriteMessage(websocket.BinaryMessage, socketMessageData)
+
+                // Send ConnectMessageResponse to opponent with
+                // new connection data
+                connectMessageResponse = ConnectGameResponse{
+                    GameID: game.ID,
+                    Player: *player_and_opponent.Opponent,
+                    Opponent: *player_and_opponent.Player,
+                }
+
+                socketMessage.Data = connectMessageResponse
+
+                player_and_opponent.Opponent.SocketConn.WriteJSON(socketMessage)
 				break
 			}
 		}
@@ -157,9 +128,9 @@ func connect_game(connectGame ConnectGameData, c *websocket.Conn) {
 func update_player_state(playerState PlayerState) {
 	for i := 0; i < len(games); i++ {
 		if games[i].ID == playerState.GameID {
-			player_and_opponent := get_player_and_opponent(playerState.GameID, games[i])
-			if player_and_opponent.opponent != nil {
-				player_and_opponent.opponent.socket_conn.WriteJSON(playerState)
+			player_and_opponent := get_player_and_opponent(playerState.PlayerID, games[i])
+			if player_and_opponent.Opponent != nil {
+				player_and_opponent.Opponent.SocketConn.WriteJSON(playerState)
 			}
 			break
 		}
@@ -170,25 +141,25 @@ func get_player_and_opponent(playerID string, game Game) PlayerAndOpponent {
 	if game.PlayerOne.ID == playerID {
 		if game.PlayerTwo.Nickname != "" {
 			return PlayerAndOpponent{
-				player:   &game.PlayerOne,
-				opponent: &game.PlayerTwo,
+				Player:   &game.PlayerOne,
+				Opponent: &game.PlayerTwo,
 			}
 		}
 
 		return PlayerAndOpponent{
-			player:   &game.PlayerOne,
-			opponent: nil,
+			Player:   &game.PlayerOne,
+			Opponent: nil,
 		}
 	}
 
 	if game.PlayerTwo.ID == playerID {
 		return PlayerAndOpponent{
-			player:   &game.PlayerTwo,
-			opponent: &game.PlayerOne,
+			Player:   &game.PlayerTwo,
+			Opponent: &game.PlayerOne,
 		}
 	}
 
-	return PlayerAndOpponent{nil, nil}
+    return PlayerAndOpponent{Player: nil, Opponent: nil}
 }
 
 func handle_socket_conn(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +186,7 @@ func handle_socket_conn(w http.ResponseWriter, r *http.Request) {
 
 		// Packet sent on websocket conn is related to game connection
 		if socketMessage.Type == CONNECT {
-			var connectGameData SocketMessageConnectGame
+			var connectGameData SocketMessageConnectGameRequest
 			// Waste of resources, but it works for now
 			err := json.Unmarshal(message, &connectGameData)
 
@@ -228,14 +199,17 @@ func handle_socket_conn(w http.ResponseWriter, r *http.Request) {
 
 		// Packet sent on websocket conn is related to player state
 		if socketMessage.Type == UPDATE_PLAYER_STATE {
-			var playerState PlayerState
+			var playerState SocketMessageUpdatePlayerState
+            log.Println(playerState.Data.PlayerID)
+
 			// Waste of resources, but it works for now
 			err := json.Unmarshal(message, &playerState)
 
 			if err != nil {
 				log.Fatal("unmarshal:", err)
 			}
-			update_player_state(socketMessage.Data.(PlayerState))
+
+			update_player_state(playerState.Data)
 		}
 	}
 }
