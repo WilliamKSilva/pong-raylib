@@ -10,22 +10,24 @@
 // To run on the browser
 void UpdateDrawFrame(void);
 
+Player player = Player({.x = 100, .y = 30}, BLACK, "Player");
+Enemy enemy = Enemy({.x = Window::width - 100, .y = 30}, BLACK, "Enemy");
+Ball ball =
+    Ball({.x = (float)Window::width / 2.0, .y = (float)Window::height / 2.0},
+         20.0, BLACK);
+
 int main() {
   Window::init();
   GameMode gameMode = OFFLINE;
 
-  emscripten_set_main_loop(UpdateDrawFrame, 0, 1);
+  emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
 
   return 0;
 }
 
+// Update and draw game frame
 void UpdateDrawFrame(void) {
-  SetTargetFPS(60);
-  Player player = Player({.x = 100, .y = 30}, BLACK, "Player");
-  Enemy enemy = Enemy({.x = Window::width - 100, .y = 30}, BLACK, "Enemy");
-  Ball ball =
-      Ball({.x = (float)Window::width / 2.0, .y = (float)Window::height / 2.0},
-           20.0, BLACK);
+
   ball.check_collision({.x = player.pos.x,
                         .y = player.pos.y,
                         .width = (float)player.width,
@@ -58,14 +60,16 @@ void UpdateDrawFrame(void) {
   ball.bounce();
   enemy.move(ball.pos.y);
 
+  emscripten_log(0, "%f", player.pos.y);
+
   // Render stuff
   BeginDrawing();
   ClearBackground(WHITE);
-      player.render();
-      ball.render();
-      enemy.render();
+  player.render();
+  ball.render();
+  enemy.render();
 
-      player.render_score();
-      enemy.render_score();
+  player.render_score();
+  enemy.render_score();
   EndDrawing();
 }
