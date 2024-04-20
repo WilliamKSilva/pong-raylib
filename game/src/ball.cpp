@@ -1,4 +1,3 @@
-#include <iostream>
 #include "raylib.h"
 #include "ball.h"
 #include "game.h"
