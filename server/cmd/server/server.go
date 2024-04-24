@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 
+	. "github.com/WilliamKSilva/pong/server/pkg"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-    . "github.com/WilliamKSilva/pong/server/pkg"
 )
 
 var addr = flag.String("addr", "localhost:3000", "http service address")
@@ -23,9 +23,9 @@ func connect_game(connectGame ConnectGameRequest, c *websocket.Conn) {
 	if connectGame.GameID == "" {
 		game.ID = uuid.NewString()
 		game.PlayerOne = Player{
-			ID:       uuid.NewString(),
-			Nickname: connectGame.Nickname,
-            SocketConn: c,
+			ID:         uuid.NewString(),
+			Nickname:   connectGame.Nickname,
+			SocketConn: c,
 		}
 		log.Println("game created:", game.ID)
 		games = append(games, game)
@@ -71,9 +71,9 @@ func connect_game(connectGame ConnectGameRequest, c *websocket.Conn) {
 			if games[i].ID == connectGame.GameID {
 				log.Println("game updated:", games[i].ID)
 				games[i].PlayerTwo = Player{
-					ID:       uuid.NewString(),
-					Nickname: connectGame.Nickname,
-                    SocketConn: c,
+					ID:         uuid.NewString(),
+					Nickname:   connectGame.Nickname,
+					SocketConn: c,
 				}
 
 				game = games[i]
@@ -105,20 +105,20 @@ func connect_game(connectGame ConnectGameRequest, c *websocket.Conn) {
 					return
 				}
 
-                // Send ConnectMessageResponse to player
+				// Send ConnectMessageResponse to player
 				c.WriteMessage(websocket.BinaryMessage, socketMessageData)
 
-                // Send ConnectMessageResponse to opponent with
-                // new connection data
-                connectMessageResponse = ConnectGameResponse{
-                    GameID: game.ID,
-                    Player: *player_and_opponent.Opponent,
-                    Opponent: *player_and_opponent.Player,
-                }
+				// Send ConnectMessageResponse to opponent with
+				// new connection data
+				connectMessageResponse = ConnectGameResponse{
+					GameID:   game.ID,
+					Player:   *player_and_opponent.Opponent,
+					Opponent: *player_and_opponent.Player,
+				}
 
-                socketMessage.Data = connectMessageResponse
+				socketMessage.Data = connectMessageResponse
 
-                player_and_opponent.Opponent.SocketConn.WriteJSON(socketMessage)
+				player_and_opponent.Opponent.SocketConn.WriteJSON(socketMessage)
 				break
 			}
 		}
@@ -159,7 +159,7 @@ func get_player_and_opponent(playerID string, game Game) PlayerAndOpponent {
 		}
 	}
 
-    return PlayerAndOpponent{Player: nil, Opponent: nil}
+	return PlayerAndOpponent{Player: nil, Opponent: nil}
 }
 
 func handle_socket_conn(w http.ResponseWriter, r *http.Request) {
@@ -200,7 +200,7 @@ func handle_socket_conn(w http.ResponseWriter, r *http.Request) {
 		// Packet sent on websocket conn is related to player state
 		if socketMessage.Type == UPDATE_PLAYER_STATE {
 			var playerState SocketMessageUpdatePlayerState
-            log.Println(playerState.Data.PlayerID)
+			log.Println(playerState.Data.PlayerID)
 
 			// Waste of resources, but it works for now
 			err := json.Unmarshal(message, &playerState)
